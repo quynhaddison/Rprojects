@@ -1,0 +1,142 @@
+---
+title: "Developing Some Features for a Lottery-winning Calculator App"
+author: "Addison"
+date: "2022-09-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### Introduction
+This project aims to develop some features for an app calculating 6/49 lottery winning probabilities in Canada based on a dataset that contains 3665 rows, each of which describes a historical drawing day and numbers drawn on that day from 1982 to 2018. The dataset could be obtained through this link: https://drive.google.com/file/d/1xRS5_yflQs63d8FyyPG5DauHyO_JRVQc/view?usp=sharing.
+
+Now, to start with, let's have a quick look at the first few rows as well as essential information of the data to imagine what the data looks like as well as get to know the data types of columns and the number of null values.
+
+```{r message = FALSE}
+library(tidyverse)
+
+lottery <- read.csv("/Users/apple/Downloads/R dataquest/649.csv")
+
+head(lottery)
+glimpse(lottery)
+
+colSums(is.na(cars))
+
+```
+The data looks clean and ready for further analysis with no missing values.
+
+For the purpose of this project, we will only use columns "NUMBER DRAWN" 1-6.
+
+
+### Building the first feature
+
+Now, we are going to build our first feature for the app called "one_ticket_probability", which takes in a vector of 6 unique numbers and prints the probability of winning.
+
+Since players are allowed to pick their own numbers as well as the order of chosen numbers does not matter, we will use the combination formula for building the first feature.
+
+```{r}
+one_ticket_probability <- function(six_num_vector){
+  num_outcomes <- choose(49,6)
+  winning_prob <- 1/num_outcomes*100
+  num_string <- paste0("(", paste(six_num_vector, collapse = ", "), ")")
+  message <- sprintf("The probability of winning the big prize of %s is %.7f%%", num_string, winning_prob)
+  return (message)
+}
+```
+
+Now, we are about to test our first feature with a vector of 6 random different numbers to see what the output looks like.
+It is also worth noting that any combination of 6 numbers has the same probability of winning, meaning that the output of this function is the same for any combination of 6 random different numbers
+
+```{r}
+test_input_1 = c(2, 43, 22, 23, 11, 5)
+one_ticket_probability(test_input_1)
+```
+
+### Building the second feature
+
+Next, we will build the second feature called "check_historical_occurence", which takes in two inputs: a vector of 6 random different numbers and the list called "winning_numbers" that contains the sets of the winning numbers in the past and then prints the number of times the combination inputted by the user occurred in the historical record.
+
+```{r}
+winning_numbers <- pmap(lottery[5:10], c, use.names = F)
+
+check_historical_occurrence <- function(six_num_vector, winning_series) {
+  num_occurrence <- 0
+  for(element in winning_series){
+    if(setequal(six_num_vector, element))
+    {num_occurrence <- num_occurrence +1}
+  }
+  num_string <- paste0("(", paste(six_num_vector, collapse = ", "), ")")
+  message <- sprintf("The combination %s has occurred %d time(s) in the historical record", num_string, num_occurrence)
+  
+  return(message)
+}
+```
+
+Now, we are going to test our second feature with a vector of 6 random different numbers to see what the output looks like.
+```{r}
+test_input_2 <- c(33, 36, 37, 39, 8, 41)
+
+check_historical_occurrence(test_input_2, winning_numbers)
+```
+
+### Building the third feature
+
+Next, we will build the third feature called "multi_ticket_probability", which takes in one input, which is the number of tickets played, and prints the probability of winning the big prize.
+The probability is calculated by having the number of tickets played divided by the total outcomes and then multiplied by 100.
+
+```{r}
+multi_ticket_probability <- function(quantity) {
+  num_outcomes = choose(49,6)
+  winning_prob <- quantity/num_outcomes*100
+  message <- sprintf("The probability of winning the big prize with %d different tickets is %.7f%%", quantity, winning_prob)
+  return(message)
+}
+```
+
+Now, we are going to test our third feature with different numbers of tickets played to see what the outputs look like.
+```{r}
+test_input_3 <- c(1, 10, 100, 10000, 1000000, 6991908, 13983816)
+
+multi_ticket_probability(test_input_3)
+
+```
+
+### Building the fourth feature
+
+In most 6/49 lotteries, there are smaller prizes if a player's ticket matches two, three, four, or five of the six numbers drawn. Thus, we will build the fourth feature called "probability_less_6", which takes in an integer from 2 to 5 and prints the probability of winning a small prize with that quantity of winning numbers.
+
+```{r}
+probability_less_6 <- function(number){
+  num_outcomes <- choose(49,6)
+  num_combination <- choose(6, number)
+  num_combination_remaining <- choose(43, 6 - number)
+  successful_outcome <- num_combination*num_combination_remaining
+  prob <- successful_outcome/num_outcomes*100
+  message <- sprintf("The probability of winning a small prize with %d winning numbers is  %.7f%%", number, prob)
+  return(message)
+  
+}
+```
+Now, we are going to test our fourth feature with all the numbers from 2 to 5 to see what the outputs look like.
+
+```{r}
+test_input_4 <- c(2, 3, 4, 5)
+probability_less_6(test_input_4)
+
+```
+
+### Conclusion
+
+In this project, we successfully built four features for a lottery-winning calculator app which are:
+
+- "one_ticket_probability"
+
+- "check_historical_occurrence"
+
+- "multi_ticket_probability"
+
+- "probability_less_6"
+
+
+We hope that users could realize that the chances of winning lottery prizes are really small, so they should not waste money on lotteries or buy lottery tickets excessively.

@@ -1,0 +1,268 @@
+---
+title: "Predicting Car Prices in the US"
+author: "Addison"
+date: "2022-09-12"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Introduction
+
+This project aims to build a model to predict car prices in the US based on a dataset that contains 204 rows, each of which denotes characteristics of a car and other information such as price and normalized losses in use as compared to other cars. The dataset could be obtained through this link: https://drive.google.com/file/d/12ZuW16SeYDlOwtdrjN5QrswbFvQ15OPW/view?usp=sharing.
+
+
+
+Here are the descriptions for all the columns:
+
+**1. symboling:** the degree of risk. The smaller the number is, the riskier the car is
+
+**2. normalized-losses:** normalized losses in use as compared to other cars
+
+**3. make:** the name of the manufacturer
+
+**4. fuel-type:** the type of fuel the car uses
+
+**5. aspiration:** the type of the naturally aspirated engine of the car
+
+**6. num-of-doors:** the number of doors of the car
+
+**7. body-style:** the style of the car
+
+**8. drive-wheels:** the type of drivetrain
+
+**9. engine-location:** the location of the engine
+
+**10. wheel-base:**  the distance between the centre of the front wheels and the centre of the rear wheels
+
+**11. length:** the length of the car
+
+**12. width:** the width of the car
+
+**13. height:** the height of the car
+
+**14. curb-weight:** the weight of the vehicle including a full tank of fuel and all standard equipment
+
+**15. engine-type:** the type of the engine of the car
+
+**16. num-of-cylinders:** the number of cylinders
+
+**17. engine-size:** the size of the engine of the car
+
+**18. fuel-system:** the fuel system of the car
+
+**19. bore:** the inner diameter of the cylinder of the car
+
+**20. stroke:** the distance travelled by the piston during each cycle
+
+**21. compression-ratio:** the ratio of the maximum to minimum volume in the cylinder of the internal combustion engine 
+
+**22. horsepower:** the degree of power the engine of the car produces
+
+**23. peak-rpm:** peak revolutions per minute, the highest speed of the engine when operating
+
+**24. city-mpg:** the average miles-per-gallon for the car in a city
+
+**25. highway-mpg:** the average miles-per-gallon for the car on the highway
+
+**26. price:** the price of the car
+
+
+
+
+```{r message = FALSE}
+
+library(tidyverse)
+library(lattice)
+library(caret)
+library(fastDummies)
+
+
+cars <- read.csv("/Users/apple/Downloads/R dataquest/imports-85.data")
+
+colnames(cars) <- c(
+  "symboling",
+  "normalized_losses",
+  "make",
+  "fuel_type",
+  "aspiration",
+  "num_doors",
+  "body_style",
+  "drive_wheels",
+  "engine_location",
+  "wheel_base",
+  "length",
+  "width",
+  "height",
+  "curb_weight",
+  "engine_type",
+  "num_cylinders",
+  "engine_size",
+  "fuel_system",
+  "bore",
+  "stroke",
+  "compression_ratio",
+  "horsepower",
+  "peak_rpm",
+  "city_mpg",
+  "highway_mpg",
+  "price"
+)
+```
+
+The names of the columns have been added to the data according to the dataset information published on https://archive.ics.uci.edu/ml/datasets/automobile. 
+
+Now, to start with, let's have a quick look at the first few rows as well as essential information of the data to imagine what the data looks like as well as get to know the data types of columns and the number of non-null values.
+
+```{r message = FALSE}
+
+head(cars)
+
+glimpse(cars)
+
+
+```
+
+After having a look at the data above, it is noticeable that some numeric values are currently in the character data type (e.g. normalized_losses and num_doors). In addition, missing values in this dataset are presented as "?" rather than "NA" (e.g. normalized_losses). Thus, we are going to replace those question marks with NA to simplify our process of counting missing values as well as convert numeric values in the character data type to the numeric data type for further analysis.
+
+It is worth mentioning that other character variables could be interpreted as categories (e.g. make and body_style). Therefore, we are going to dummy-code such variables for running the prediction model later.
+
+```{r message = FALSE}
+cars[cars == "?"] <- NA
+
+colSums(is.na(cars))
+```
+
+From the data above, it is obvious that there are 40 missing values in the "normalized_losses" column, which accounts for approximately 20% of the original dataset. Since this number is quite considerable, we will replace missing values in the column with the average value of the column rather than omitting them.
+
+### Data cleaning and transformation
+
+Before dealing with missing values, we will identify category columns (placed in variable "cat_col"), dummy-code them and create a new data frame containing such dummy values called "dummy_cars".
+
+```{r message = FALSE}
+cat_cols <- c(
+  "make",
+  "fuel_type",
+  "aspiration",
+  "body_style",
+  "drive_wheels",
+  "engine_location",
+  "engine_type",
+  "fuel_system"
+)
+
+dummy_df <- dummy_cols(cars, 
+                       select_columns = cat_cols)
+
+
+dummy_cars <- dummy_df %>% select(-cat_cols)
+
+glimpse(dummy_cars)
+
+```
+
+Now, we are going to convert the other character variables (placed in variable "num_convert_cols") to numeric ones. We will also replace missing values in the "normalized_loss" column with the average value of such a column. 
+
+```{r message = FALSE}
+num_convert_cols <- c(
+  "normalized_losses",
+  "bore",
+  "stroke",
+  "horsepower",
+  "peak_rpm",
+  "price"
+)
+  
+dummy_cars[num_convert_cols] <- sapply(dummy_cars[num_convert_cols],as.numeric)
+
+
+mean(dummy_cars$normalized_losses, na.rm = TRUE)
+
+dummy_cars <- dummy_cars  %>%
+  mutate(normalized_losses = replace_na(normalized_losses, mean(dummy_cars$normalized_losses, na.rm = TRUE)
+))
+
+dummy_cars <- dummy_cars  %>%
+  mutate(
+    num_doors = str_replace_all(num_doors, pattern = "four", replacement = "4")) %>% mutate(
+    num_doors = str_replace_all(num_doors, pattern = "two", replacement = "2")) %>% mutate(
+    num_doors = as.numeric(num_doors))
+
+dummy_cars <- dummy_cars  %>%
+  mutate(
+    num_cylinders = str_replace_all(num_cylinders, pattern = "four", replacement = "4")) %>% mutate(
+      num_cylinders = str_replace_all(num_cylinders, pattern = "two", replacement = "2")) %>% mutate(
+        num_cylinders = str_replace_all(num_cylinders, pattern = "three", replacement = "3")) %>% mutate(
+          num_cylinders = str_replace_all(num_cylinders, pattern = "five", replacement = "5")) %>% mutate(
+            num_cylinders = str_replace_all(num_cylinders, pattern = "six", replacement = "6")) %>% mutate(
+              num_cylinders = str_replace_all(num_cylinders, pattern = "eight", replacement = "8")) %>% mutate(
+                num_cylinders = str_replace_all(num_cylinders, pattern = "twelve", replacement = "12")) %>% mutate(
+        num_cylinders = as.numeric(num_cylinders))
+
+glimpse(dummy_cars)
+
+```
+After converting all variables into the numeric type, we are about to remove rows containing missing values since those values just account for roughly 5.8% of the dataset.
+
+```{r message = FALSE}
+dummy_cars <- dummy_cars %>% drop_na()
+
+nrow(dummy_cars)
+```
+
+Now, the new dataset containing 192 rows is ready for training and testing our price prediction model.
+
+### Setting up training and testing sets
+
+Next, we will split the data into training and testing sets.
+
+The training set named "train_data" will contain 80% of the dataset.
+
+The remaining 20 %of the dataset will belong to the testing test named "test_data".
+
+```{r message = FALSE}
+train_indices <- createDataPartition(dummy_cars$price, p = 0.8,  list = FALSE)
+train_data <- dummy_cars[train_indices,]
+test_data <- dummy_cars[-train_indices,]
+```
+
+### Training and testing the prediction model
+
+In this project, we will use 10-fold cross-validation to reduce the influence of potential outliers as well as a hyperparameter grid of 20 to improve the accuracy of the prediction model. Then, we will use the training set to train the model having "price" as our target variable and the others as our features.
+
+```{r message = FALSE, warning = FALSE}
+ten_fold_control <- trainControl(method = "cv", number = 10)
+knn_grid <- expand.grid(k = 1:20)
+
+knn_model <- train(price ~ .,
+                   data = train_data,
+                   method = "knn",
+                   trControl = ten_fold_control,
+                   preProcess = c("center", "scale"),
+                   tuneGrid = knn_grid)
+knn_model
+```
+
+### Model evaluation
+
+Now, we are about to use the testing set to test our prediction model and then have a quick look at the actual and predicted prices (price versus predictions) for comparison. We will also compute the root mean squared error (RMSE), R squared, and mean absolute error (MAE) to evaluate the accuracy of our model.
+
+
+```{r message = FALSE}
+test_predictions <- predict(knn_model, newdata = test_data)
+
+predicted_test <- test_data %>% mutate(
+  predictions = test_predictions
+)
+
+predicted_test %>% select(price, predictions)
+
+postResample(pred = test_predictions, obs = test_data$price)
+
+```
+
+### Conclusion
+
+Based on the metrics above, it is reasonable to conclude that our prediction model works pretty well. Specifically, high R-squared means that the price variable is pretty well-explained by other variables while the other error metrics are quite low. 
