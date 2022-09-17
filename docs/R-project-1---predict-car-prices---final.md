@@ -479,7 +479,12 @@ test_data <- dummy_cars[-train_indices,]
 
 ### Training and testing the prediction model
 
-In this project, we will employ the method of K-Nearest Neighbors to train a machine learning algorithm on the training set having “price” as our target and the other variables as our features. We will also normalize the data and use 10-fold cross-validation to reduce the influence of potential outliers as well as a hyperparameter grid of 20 to improve the accuracy of the prediction model. 
+In this project, we will employ the method of K-Nearest Neighbors to
+train a machine learning algorithm on the training set having “price” 
+as our target and the other variables as our features. We will also 
+normalize the data and use 10-fold cross-validation to reduce the 
+influence of potential outliers as well as a hyperparameter grid of 
+20 to improve the accuracy of the prediction model. 
 
 ``` r
 ten_fold_control <- trainControl(method = "cv", number = 10)
